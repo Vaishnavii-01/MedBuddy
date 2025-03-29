@@ -1,16 +1,24 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";  
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 const Login = ({ setLoggedIn }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // You can add validation logic here
-    setLoggedIn(true);
-    navigate("/");
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("Login successful!");
+      setLoggedIn(true);
+      navigate("/");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Invalid email or password. Please try again.");
+    }
   };
 
   return (
