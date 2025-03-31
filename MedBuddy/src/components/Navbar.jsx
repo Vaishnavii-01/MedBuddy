@@ -13,11 +13,15 @@ const Navbar = ({ loggedIn }) => {
     navigate("/profile");
   };
 
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
   return (
     <nav className="flex justify-between items-center p-4 shadow-md bg-yellow-300">
-      <div>
-        <img src={logo} alt="MedBuddy Logo" className="h-12 w-auto" />
-      </div>
+      <button onClick={handleLogoClick} className="focus:outline-none">
+        <img src={logo} alt="MedBuddy Logo" className="h-12 w-auto cursor-pointer" />
+      </button>
       <div className="flex ml-auto items-center space-x-6">
         <ul className="flex space-x-6 text-gray-700 font-medium">
           <li className="cursor-pointer">Reminder</li>

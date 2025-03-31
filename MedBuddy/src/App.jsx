@@ -1,13 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
+import { auth } from "./firebase"; 
+import { onAuthStateChanged } from "firebase/auth";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import UserProfile from "./pages/UserProfile"; // Import UserProfile component
+import Signup from "./pages/SignUp";
+import UserProfile from "./pages/UserProfile";
 
 const App = () => {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(null); 
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setLoggedIn(!!user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loggedIn === null) {
+    return <div className="text-center mt-10 text-xl font-semibold">Loading...</div>; 
+  }
 
   return (
     <>
@@ -16,10 +30,7 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login setLoggedIn={setLoggedIn} />} />
         <Route path="/signup" element={<Signup />} />
-        <Route
-          path="/profile"
-          element={<UserProfile setLoggedIn={setLoggedIn} />}
-        />
+        <Route path="/profile" element={<UserProfile setLoggedIn={setLoggedIn} />} />
       </Routes>
     </>
   );
