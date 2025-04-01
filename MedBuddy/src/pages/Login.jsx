@@ -40,7 +40,7 @@ const Login = ({ setLoggedIn }) => {
       <p className="mt-4 text-gray-600">
         Don't have an account?{" "}
         <span
-          className="text-blue-500 cursor-pointer"
+          className="text-black cursor-pointer font-bold"
           onClick={() => navigate("/signup")}
         >
           Sign Up
