@@ -15,7 +15,7 @@ const Login = ({ setLoggedIn }) => {
 
   return (
     <div className="flex flex-col items-center justify-center h-[80vh] bg-sky-200">
-      <div className="border-2 border-solid border-black h-[50vh] w-[30vw] flex flex-col items-center justify-center">
+      <div className="border-2 border-solid border-black bg-sky-100 rounded-lg h-[50vh] w-[30vw] flex flex-col items-center justify-center">
         <h2 className="text-2xl font-semibold mb-4">Log In</h2>
         <form onSubmit={handleSubmit} className="flex flex-col space-y-4 w-72">
           <input
