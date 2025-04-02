@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { db } from "../firebase"; 
+import { auth } from "../firebase";  
+import { query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 
 const Reminder = () => {
   const [medicines, setMedicines] = useState([]);
@@ -8,49 +12,75 @@ const Reminder = () => {
   const [dosageTimes, setDosageTimes] = useState(1);
   const [selectedTimes, setSelectedTimes] = useState([]);
   const [medicineCount, setMedicineCount] = useState(0);
+  const [pillsPerDosage, setPillsPerDosage] = useState(1); 
   const [editingMedicineId, setEditingMedicineId] = useState(null);
 
-  const handleAddMedicine = () => {
+  useEffect(() => {
+    const fetchMedicines = async () => {
+      const user = auth.currentUser; 
+      if (!user) return; 
+
+      const medicinesCollection = collection(db, "medicines"); 
+      const q = query(medicinesCollection, where("userId", "==", user.uid)); 
+      const data = await getDocs(q); 
+      setMedicines(data.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    };
+
+    fetchMedicines();
+  }, []);
+
+  const handleAddMedicine = async () => {
     if (!medicineName) {
       alert("Medicine name is required!");
       return;
     }
-  
-    if (editingMedicineId !== null) {
-      // Update existing medicine
-      setMedicines((prevMedicines) =>
-        prevMedicines.map((med) =>
-          med.id === editingMedicineId
-            ? { ...med, medicineName, doctorName, dosageRate, dosageTimes, timesArray: selectedTimes, medicineCount }
-            : med
-        )
-      );
-      setEditingMedicineId(null); // Reset editing state
-    } else {
-      // Add new medicine
-      const newMedicine = {
-        id: Date.now(),
+
+    const user = auth.currentUser;
+    if (!user) {
+      alert("User not logged in!");
+      return;
+    }
+
+    if (editingMedicineId) {
+      const medicineRef = doc(db, "medicines", editingMedicineId);
+      await updateDoc(medicineRef, {
         medicineName,
         doctorName,
         dosageRate,
         dosageTimes,
         timesArray: selectedTimes,
-        medicineCount, // Include medicine count
-      };
-      setMedicines([...medicines, newMedicine]);
+        medicineCount,
+        pillsPerDosage, 
+        userId,
+      });
+
+      setEditingMedicineId(null); 
+    } else {
+      await addDoc(collection(db, "medicines"), {
+        userId: user.uid,  
+        medicineName,
+        doctorName,
+        dosageRate,
+        dosageTimes,
+        timesArray: selectedTimes,
+        medicineCount,
+        pillsPerDosage, 
+      });
     }
-  
-    // Reset form fields
+
+    const q = query(collection(db, "medicines"), where("userId", "==", user.uid));
+    const updatedData = await getDocs(q);
+    setMedicines(updatedData.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+
     setMedicineName("");
     setDoctorName("");
     setDosageRate("daily");
     setDosageTimes(1);
     setSelectedTimes([]);
-    setMedicineCount(0); // Reset medicine count
+    setMedicineCount(0);
+    setPillsPerDosage(1);
   };
-  
-  
-  
+
   const handleEditMedicine = (id) => {
     const medicineToEdit = medicines.find((med) => med.id === id);
     if (medicineToEdit) {
@@ -58,44 +88,34 @@ const Reminder = () => {
       setDoctorName(medicineToEdit.doctorName);
       setDosageRate(medicineToEdit.dosageRate);
       setDosageTimes(medicineToEdit.dosageTimes);
-      setSelectedTimes([...medicineToEdit.timesArray]); // Fetch ALL dosage times properly
-      setMedicineCount(medicineToEdit.medicineCount); // Fetch existing count
-      setEditingMedicineId(id); // Set medicine ID for editing
+      setSelectedTimes([...medicineToEdit.timesArray]);
+      setMedicineCount(medicineToEdit.medicineCount);
+      setPillsPerDosage(medicineToEdit.pillsPerDosage || 1); 
+      setEditingMedicineId(id);
     }
   };
-  
-  // Handle deleting a medicine
-  const handleDeleteMedicine = (id) => {
+
+  const handleDeleteMedicine = async (id) => {
+    await deleteDoc(doc(db, "medicines", id));
     setMedicines(medicines.filter((med) => med.id !== id));
   };
 
-  // Handle updating dosage time for a particular medicine
   const handleTimeChange = (index, time) => {
     const updatedTimes = [...selectedTimes];
     updatedTimes[index] = time;
     setSelectedTimes(updatedTimes);
   };
 
-  // Tracker feature
-  // const handleTrackerCountChange = (id, count) => {
-  //   const updatedMedicines = medicines.map((med) =>
-  //     med.id === id ? { ...med, medicineCount: count } : med
-  //   );
-  //   setMedicines(updatedMedicines);
-  // };
-
   const convertTo12HourFormat = (time) => {
-    if (!time) return ""; // Handle empty values
+    if (!time) return "";
     const [hour, minute] = time.split(":").map(Number);
     const ampm = hour >= 12 ? "PM" : "AM";
-    const formattedHour = hour % 12 || 12; // Convert 0 to 12 for midnight
+    const formattedHour = hour % 12 || 12;
     return `${formattedHour}:${minute.toString().padStart(2, "0")} ${ampm}`;
   };
-  
 
   return (
     <div className="flex justify-between gap-12 w-[100vw] mx-auto px-20 py-6 bg-sky-200">
-      {/* Left side - Reminder Form */}
       <div className="w-1/2 bg-slate-100 p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold mb-4">Add Medicine</h2>
         <form
@@ -105,51 +125,31 @@ const Reminder = () => {
           }}
         >
           <div className="mb-4">
-            <label
-              htmlFor="medicineName"
-              className="block text-lg font-medium text-gray-700"
-            >
-              Medicine Name <span className="text-red-500">*</span>:
-            </label>
+            <label className="block text-lg font-medium">Medicine Name:</label>
             <input
               type="text"
-              id="medicineName"
               value={medicineName}
               onChange={(e) => setMedicineName(e.target.value)}
-              required
-              className="w-full p-3 mt-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full p-3 border rounded-lg"
             />
           </div>
 
           <div className="mb-4">
-            <label
-              htmlFor="doctorName"
-              className="block text-lg font-medium text-gray-700"
-            >
-              Prescribed By (Doctor's Name - Optional):
-            </label>
+            <label className="block text-lg font-medium">Doctor's Name:</label>
             <input
               type="text"
-              id="doctorName"
               value={doctorName}
               onChange={(e) => setDoctorName(e.target.value)}
-              className="w-full p-3 mt-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full p-3 border rounded-lg"
             />
           </div>
 
           <div className="mb-4">
-            <label
-              htmlFor="dosageRate"
-              className="block text-lg font-medium text-gray-700"
-            >
-              Dosage Rate <span className="text-red-500">*</span>:
-            </label>
+            <label className="block text-lg font-medium">Dosage Rate:</label>
             <select
-              id="dosageRate"
               value={dosageRate}
               onChange={(e) => setDosageRate(e.target.value)}
-              required
-              className="w-full p-3 mt-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full p-3 border rounded-lg"
             >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
@@ -158,130 +158,66 @@ const Reminder = () => {
           </div>
 
           <div className="mb-4">
-            <label
-              htmlFor="dosageTimes"
-              className="block text-lg font-medium text-gray-700"
-            >
-              Times of Dosage Per Day <span className="text-red-500">*</span>:
-            </label>
+            <label className="block text-lg font-medium">Dosage Times:</label>
             <input
               type="number"
-              id="dosageTimes"
               value={dosageTimes}
               onChange={(e) => setDosageTimes(Number(e.target.value))}
-              required
-              min="1"
-              className="w-full p-3 mt-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full p-3 border rounded-lg"
             />
           </div>
 
           <div className="mb-4">
-            <label className="block text-lg font-medium text-gray-700">
-              Set Dosage Times <span className="text-red-500">*</span>:
-            </label>
+            <label className="block text-lg font-medium">Number of Pills per packet:</label>
+            <input
+              type="number"
+              value={pillsPerDosage}
+              onChange={(e) => setPillsPerDosage(Number(e.target.value))}
+              className="w-full p-3 border rounded-lg"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-lg font-medium">Set Dosage Times:</label>
             {Array.from({ length: dosageTimes }, (_, index) => (
               <div key={index} className="flex items-center mb-2">
                 <input
                   type="time"
-                  value={selectedTimes[index] || ""} // Show correct values when editing
+                  value={selectedTimes[index] || ""}
                   onChange={(e) => handleTimeChange(index, e.target.value)}
-                  required
-                  className="p-2 border border-gray-300 rounded-lg"
+                  className="p-2 border rounded-lg"
                 />
-                <button
-                  type="button"
-                  className="ml-2 p-2 bg-green-500 text-white rounded-lg"
-                  onClick={() => handleTimeChange(index, selectedTimes[index])} // Save selected time
-                >
-                  Set Time
-                </button>
               </div>
             ))}
           </div>
 
-          <div className="mb-4">
-            <label className="block text-lg font-medium text-gray-700">
-              Medicine Count:
-            </label>
-            <input
-              type="number"
-              value={medicineCount}
-              onChange={(e) => setMedicineCount(Number(e.target.value))}
-              min="0"
-              className="w-full p-3 mt-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full p-3 mt-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition"
-          >
-            Add Medicine
+          <button type="submit" className="w-full p-3 bg-indigo-600 text-white rounded-lg">
+            {editingMedicineId ? "Update Medicine" : "Add Medicine"}
           </button>
         </form>
       </div>
 
-      {/* Right side - Reminder List and Tracker */}
       <div className="w-1/2">
         <div className="bg-slate-100 p-6 rounded-lg shadow-lg mb-8">
           <h2 className="text-2xl font-semibold mb-4">Medicines List</h2>
           <ul className="space-y-4">
             {medicines.map((medicine) => (
               <li key={medicine.id} className="border-b pb-4">
-                <strong className="text-xl">{medicine.medicineName}</strong>{" "}
-                (Prescribed by: {medicine.doctorName || "N/A"})
+                <strong>{medicine.medicineName}</strong> (Prescribed by: {medicine.doctorName || "N/A"})
                 <div className="mt-2">
-                  <span className="font-semibold">Dosage:</span>{" "}
-                  {medicine.dosageRate}, <span className="font-semibold">Times per day:</span>{" "}
-                  {medicine.dosageTimes}
-                  <div className="mt-2">
-                    <span className="font-semibold">Times:</span>{" "}
-                    {medicine.timesArray
-                      .map((time) => convertTo12HourFormat(time)) // Convert each time before displaying
-                      .join(", ")}
-                  </div>
-
-                  <div className="mt-4">
-                  <button
-                    onClick={() => handleEditMedicine(medicine.id)}
-                    disabled={editingMedicineId !== null && editingMedicineId !== medicine.id} 
-                    className={`px-4 py-2 rounded-lg transition ${
-                      editingMedicineId !== null && editingMedicineId !== medicine.id
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-yellow-500 hover:bg-yellow-600 text-white"
-                      }`}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteMedicine(medicine.id)}
-                    className="bg-red-500 text-white px-4 py-2 ml-4 rounded-lg hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                  </div>
+                  <span>Dosage: {medicine.dosageRate}, Times per day: {medicine.dosageTimes}</span>
+                  <div>Times: {medicine.timesArray.map(convertTo12HourFormat).join(", ")}</div>
+                  <div>Pills per Dosage: {medicine.pillsPerDosage}</div>
                 </div>
+                <button onClick={() => handleEditMedicine(medicine.id)} className="bg-yellow-500 px-4 py-2 rounded-lg m-2">
+                  Edit
+                </button>
+                <button onClick={() => handleDeleteMedicine(medicine.id)} className="bg-red-500 px-4 py-2 ml-4 rounded-lg m-2">
+                  Delete
+                </button>
               </li>
             ))}
           </ul>
-        </div>
-
-        {/* Tracker Feature */}
-        <div className="w-1/2">
-          <div className="bg-slate-100 p-6 rounded-lg shadow-lg mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Medicine Tracker</h2>
-            <ul className="space-y-4">
-              {medicines.map((medicine) => (
-                <li key={medicine.id} className="border-b pb-4">
-                  <span className="font-semibold">{medicine.medicineName}</span>
-                  <div className="mt-2">
-                    <span className="font-semibold">Medicine Count:</span> {medicine.medicineCount}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
       </div>
     </div>
