@@ -96,7 +96,7 @@ const UserProfile = ({ setLoggedIn }) => {
           </button>
         </div>
       </div>
-    </div>
+    
   );
 };
 
