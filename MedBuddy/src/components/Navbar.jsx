@@ -39,6 +39,7 @@ const Navbar = ({ loggedIn }) => {
           onClick={() => navigate("/")} // Navigate to home on logo click
         />
       </div>
+
       <div className="flex ml-auto items-center space-x-6">
         <ul className="flex space-x-6 text-white font-bold">
           <li className="cursor-pointer" onClick={handleReminderClick}>Reminder</li>
