@@ -1,150 +1,83 @@
 import express from "express";
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
 import cors from "cors";
-import cron from "node-cron";
+import nodemailer from "nodemailer";
 import admin from "firebase-admin";
+import cron from "node-cron";
+import dotenv from "dotenv";
 import fs from "fs";
 
+
+
 dotenv.config();
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔹 Initialize Firebase Admin SDK
-const serviceAccount = JSON.parse(fs.readFileSync("firebase-admin.json", "utf8"));
+// Initialize Firebase Admin SDK
+const serviceAccount = JSON.parse(
+  fs.readFileSync("./firebase-admin.json", "utf8")
+);
+//import serviceAccount from "./firebase-admin.json" assert { type: "json" };
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
+
 const db = admin.firestore();
 
-// 🔹 Nodemailer setup
+// Configure Nodemailer Transporter
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
   },
 });
 
-// 📌 **API Route to Save User Reminder Data**
-app.post("/set-reminder", async (req, res) => {
-  const { email, name, medicineName, reminderTime } = req.body;
-
+// Function to send an email
+const sendEmail = async (email, subject, message) => {
   try {
-    await db.collection("users").doc(email).set({
-      email,
-      name,
-      medicineName,
-      reminderTime, // Format: "HH:mm" (24-hour format)
-    });
+    const mailOptions = {
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: subject,
+      text: message,
+    };
 
-    res.json({ success: true, message: "Reminder set successfully!" });
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent to ${email}`);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Error sending email:", error);
   }
-});
-
-// 📌 **Function to Fetch Users & Send Emails at Their Specific Times**
-const scheduleUserReminders = async () => {
-  const usersSnapshot = await db.collection("users").get();
-  
-  usersSnapshot.forEach((doc) => {
-    const userData = doc.data();
-    const { email, name, medicineName, reminderTime } = userData;
-    
-    const [hour, minute] = reminderTime.split(":");
-    
-    const cronSchedule = `${minute} ${hour} * * *`; // Converts to Cron format
-
-    cron.schedule(cronSchedule, async () => {
-      console.log(`Sending email to ${email} at ${reminderTime}...`);
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Medication Reminder",
-        text: `Hello ${name}, it's time to take your medicine: ${medicineName}!`,
-      };
-
-      try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Email sent to ${email}`);
-      } catch (error) {
-        console.error(`Error sending email to ${email}:`, error.message);
-      }
-    });
-  });
 };
 
-// 🔹 Schedule Emails at Server Startup
-scheduleUserReminders();
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-
-
-/*
-import express from "express";
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-import cors from "cors";
-import cron from "node-cron";
-
-dotenv.config(); // Load environment variables from .env file
-
-const app = express();
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Allow JSON request body parsing
-
-// Nodemailer transporter setup
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER, // Your email
-    pass: process.env.EMAIL_PASS, // App password
-  },
-});
-
-// Route to send email instantly (for testing)
+// API Route to trigger email manually
 app.post("/send-email", async (req, res) => {
   const { email, subject, message } = req.body;
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: subject,
-    text: message,
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
-    res.json({ success: true, message: "Email sent successfully!" });
+    await sendEmail(email, subject, message);
+    res.json({ message: "Email sent successfully!" });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ message: "Failed to send email." });
   }
 });
 
-// Cron Job to send scheduled email reminders (Runs every day at 9 AM)
-cron.schedule("0 9 * * *", async () => {
-  console.log("Sending scheduled email reminders...");
+// Automated Scheduler - Runs every minute to check Firestore for scheduled emails
+cron.schedule("* * * * *", async () => {
+  const now = new Date();
+  console.log("Checking for scheduled emails...", now);
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: "user@example.com", // Replace with user email from database
-    subject: "Medication Reminder",
-    text: "This is your daily medication reminder!",
-  };
+  const snapshot = await db.collection("medications")
+    .where("time", "<=", now.toISOString()) // Fetch medications due now
+    .get();
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log("Reminder Email Sent Successfully!");
-  } catch (error) {
-    console.error("Error sending email:", error.message);
-  }
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    sendEmail(data.email, "Medication Reminder", `Take your medicine: ${data.medicineName}`);
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-*/
