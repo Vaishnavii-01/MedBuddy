@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "/src/assets/MedBuddy_logo.png";
+import logo from "/src/assets/MedBuddy_logo_.png";
 
 const Navbar = ({ loggedIn }) => {
   const navigate = useNavigate();
