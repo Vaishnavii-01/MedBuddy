@@ -38,7 +38,16 @@ const sendEmail = async (email, subject, message) => {
       from: process.env.GMAIL_USER,
       to: email,
       subject: subject,
-      text: message,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9;">
+          <h2 style="color: #4CAF50;">💊 Medication Reminder</h2>
+          <p>Hello!</p>
+          <p>This is a gentle reminder to take your medicine:</p>
+          <p style="font-size: 18px; font-weight: bold;">${message}</p>
+          <hr style="margin: 20px 0;" />
+          <p style="font-size: 14px; color: #555;">Stay healthy!<br>– Your MedBuddy 🤖</p>
+        </div>
+      `
     };
 
     await transporter.sendMail(mailOptions);
