@@ -44,7 +44,7 @@ const Navbar = ({ loggedIn }) => {
         <ul className="flex space-x-6 text-white font-bold">
           <li className="cursor-pointer" onClick={handleReminderClick}>Reminder</li>
           <li className="cursor-pointer" onClick={handlePharmacyClick}>Pharmacy</li>
-          <li className="cursor-pointer" onClick={handleDoctorClick}>Doctor</li>
+          <li className="cursor-pointer" onClick={handleDoctorClick}>Consultation</li>
           <li className="cursor-pointer" onClick={handleHospitalClick}>Hospital</li>
         </ul>
         <div>
