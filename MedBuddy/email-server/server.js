@@ -13,7 +13,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Firebase Admin SDK
 const serviceAccount = JSON.parse(fs.readFileSync("./firebase-admin.json", "utf8"));
 
 admin.initializeApp({
@@ -22,7 +21,6 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Configure Nodemailer Transporter
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -31,7 +29,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Function to send an email
 const sendEmail = async (email, subject, message) => {
   try {
     const mailOptions = {
@@ -57,7 +54,6 @@ const sendEmail = async (email, subject, message) => {
   }
 };
 
-// API Route to trigger email manually
 app.post("/send-email", async (req, res) => {
   const { email, subject, message } = req.body;
 
@@ -69,7 +65,6 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
-// Function to check and send scheduled medication reminders
 const checkScheduledEmails = async () => {
   console.log("🔍 Checking for scheduled emails...");
 
@@ -78,7 +73,6 @@ const checkScheduledEmails = async () => {
   const currentMinute = now.getMinutes();
   const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
 
-  // Fetch medicines collection
   const medicineDocs = await db.collection("medicines").get();
 
   medicineDocs.forEach(async (doc) => {
@@ -91,7 +85,6 @@ const checkScheduledEmails = async () => {
       return;
     }
 
-    // Fetch user document from the users collection
     const userDoc = await db.collection("users").doc(data.userId).get();
 
     if (!userDoc.exists) {
@@ -106,7 +99,6 @@ const checkScheduledEmails = async () => {
       return;
     }
 
-    // Check if the medicine reminder time matches the current time
     if (data.timesArray && data.timesArray.includes(currentTime)) {
       console.log(`📧 Sending reminder email to: ${userEmail}`);
 
@@ -120,17 +112,15 @@ const checkScheduledEmails = async () => {
   });
 };
 
-// Run the function every minute
 setInterval(checkScheduledEmails, 60000);
 
-// Automated Scheduler - Runs every minute using cron
 cron.schedule("* * * * *", async () => {
   console.log("⏳ Running scheduled medication reminder check...");
 
   const now = new Date();
-  now.setHours(now.getHours() + 5); // Convert to IST (UTC +5:30)
+  now.setHours(now.getHours() + 5); 
   now.setMinutes(now.getMinutes() + 30);
-  const currentTime = now.toISOString().slice(11, 16); // Extract HH:MM format
+  const currentTime = now.toISOString().slice(11, 16); 
 
   const snapshot = await db.collection("medicines").get();
 
@@ -143,7 +133,6 @@ cron.schedule("* * * * *", async () => {
         return;
       }
 
-      // Fetch user document
       const userDoc = await db.collection("users").doc(data.userId).get();
 
       if (!userDoc.exists) {
