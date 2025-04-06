@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "/src/assets/MedBuddy_logo.png";
+import logo from "/src/assets/MedBuddy_logo_.png";
 
 const Navbar = ({ loggedIn }) => {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ const Navbar = ({ loggedIn }) => {
         <ul className="flex space-x-6 text-white font-bold">
           <li className="cursor-pointer" onClick={handleReminderClick}>Reminder</li>
           <li className="cursor-pointer" onClick={handlePharmacyClick}>Pharmacy</li>
-          <li className="cursor-pointer" onClick={handleDoctorClick}>Doctor</li>
+          <li className="cursor-pointer" onClick={handleDoctorClick}>Consultation</li>
           <li className="cursor-pointer" onClick={handleHospitalClick}>Hospital</li>
         </ul>
         <div>
