@@ -36,7 +36,7 @@ const Navbar = ({ loggedIn }) => {
           src={logo}
           alt="MedBuddy Logo"
           className="h-12 w-auto cursor-pointer"
-          onClick={() => navigate("/")} // Navigate to home on logo click
+          onClick={() => navigate("/")} 
         />
       </div>
 

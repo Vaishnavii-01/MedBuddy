@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase"; 
-import { auth } from "../firebase";  
-import { query, where } from "firebase/firestore";
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  updateDoc,
+  query,
+  where,
+} from "firebase/firestore";
 
 const Reminder = () => {
   const [medicines, setMedicines] = useState([]);
@@ -12,17 +19,17 @@ const Reminder = () => {
   const [dosageTimes, setDosageTimes] = useState(1);
   const [selectedTimes, setSelectedTimes] = useState([]);
   const [medicineCount, setMedicineCount] = useState(0);
-  const [pillsPerDosage, setPillsPerDosage] = useState(1); 
+  const [pillsPerDosage, setPillsPerDosage] = useState(1);
   const [editingMedicineId, setEditingMedicineId] = useState(null);
 
   useEffect(() => {
     const fetchMedicines = async () => {
-      const user = auth.currentUser; 
-      if (!user) return; 
+      const user = auth.currentUser;
+      if (!user) return;
 
-      const medicinesCollection = collection(db, "medicines"); 
-      const q = query(medicinesCollection, where("userId", "==", user.uid)); 
-      const data = await getDocs(q); 
+      const medicinesCollection = collection(db, "medicines");
+      const q = query(medicinesCollection, where("userId", "==", user.uid));
+      const data = await getDocs(q);
       setMedicines(data.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     };
 
@@ -41,44 +48,48 @@ const Reminder = () => {
       return;
     }
 
-    if (editingMedicineId) {
-      const medicineRef = doc(db, "medicines", editingMedicineId);
-      await updateDoc(medicineRef, {
-        medicineName,
-        doctorName,
-        dosageRate,
-        dosageTimes,
-        timesArray: selectedTimes,
-        medicineCount,
-        pillsPerDosage, 
-        userId,
-      });
+    try {
+      if (editingMedicineId) {
+        const medicineRef = doc(db, "medicines", editingMedicineId);
+        await updateDoc(medicineRef, {
+          userId: user.uid,
+          medicineName,
+          doctorName,
+          dosageRate,
+          dosageTimes,
+          timesArray: selectedTimes,
+          medicineCount,
+          pillsPerDosage,
+        });
 
-      setEditingMedicineId(null); 
-    } else {
-      await addDoc(collection(db, "medicines"), {
-        userId: user.uid,  
-        medicineName,
-        doctorName,
-        dosageRate,
-        dosageTimes,
-        timesArray: selectedTimes,
-        medicineCount,
-        pillsPerDosage, 
-      });
+        setEditingMedicineId(null);
+      } else {
+        await addDoc(collection(db, "medicines"), {
+          userId: user.uid,
+          medicineName,
+          doctorName,
+          dosageRate,
+          dosageTimes,
+          timesArray: selectedTimes,
+          medicineCount,
+          pillsPerDosage,
+        });
+      }
+
+      const q = query(collection(db, "medicines"), where("userId", "==", user.uid));
+      const updatedData = await getDocs(q);
+      setMedicines(updatedData.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+
+      setMedicineName("");
+      setDoctorName("");
+      setDosageRate("daily");
+      setDosageTimes(1);
+      setSelectedTimes([]);
+      setMedicineCount(0);
+      setPillsPerDosage(1);
+    } catch (error) {
+      console.error("Error saving medicine:", error);
     }
-
-    const q = query(collection(db, "medicines"), where("userId", "==", user.uid));
-    const updatedData = await getDocs(q);
-    setMedicines(updatedData.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-
-    setMedicineName("");
-    setDoctorName("");
-    setDosageRate("daily");
-    setDosageTimes(1);
-    setSelectedTimes([]);
-    setMedicineCount(0);
-    setPillsPerDosage(1);
   };
 
   const handleEditMedicine = (id) => {
@@ -90,7 +101,7 @@ const Reminder = () => {
       setDosageTimes(medicineToEdit.dosageTimes);
       setSelectedTimes([...medicineToEdit.timesArray]);
       setMedicineCount(medicineToEdit.medicineCount);
-      setPillsPerDosage(medicineToEdit.pillsPerDosage || 1); 
+      setPillsPerDosage(medicineToEdit.pillsPerDosage || 1);
       setEditingMedicineId(id);
     }
   };
@@ -117,7 +128,7 @@ const Reminder = () => {
   return (
     <div className="flex justify-between gap-12 w-[100vw] mx-auto px-20 py-6 bg-sky-200">
       <div className="w-1/2 bg-slate-100 p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-semibold mb-4">Add Medicine</h2>
+        <h2 className="text-2xl font-semibold mb-4">{editingMedicineId ? "Update Medicine" : "Add Medicine"}</h2>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -209,10 +220,16 @@ const Reminder = () => {
                   <div>Times: {medicine.timesArray.map(convertTo12HourFormat).join(", ")}</div>
                   <div>Pills per Dosage: {medicine.pillsPerDosage}</div>
                 </div>
-                <button onClick={() => handleEditMedicine(medicine.id)} className="bg-yellow-500 px-4 py-2 rounded-lg m-2">
+                <button
+                  onClick={() => handleEditMedicine(medicine.id)}
+                  className="bg-yellow-500 px-4 py-2 rounded-lg m-2"
+                >
                   Edit
                 </button>
-                <button onClick={() => handleDeleteMedicine(medicine.id)} className="bg-red-500 px-4 py-2 ml-4 rounded-lg m-2">
+                <button
+                  onClick={() => handleDeleteMedicine(medicine.id)}
+                  className="bg-red-500 px-4 py-2 ml-4 rounded-lg m-2"
+                >
                   Delete
                 </button>
               </li>

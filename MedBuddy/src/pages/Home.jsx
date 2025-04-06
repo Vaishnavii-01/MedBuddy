@@ -1,29 +1,40 @@
 import React from "react";
 import heroImage from "/src/assets/homepgimg.svg";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
+import { useNavigate } from "react-router-dom"; 
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useEffect, useState } from "react";
 
 const Home = () => {
-  const navigate = useNavigate(); // Hook to handle navigation
+  const navigate = useNavigate(); 
+
+  const [userLoggedIn, setUserLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserLoggedIn(!!user);
+    });
+    return () => unsubscribe();
+  }, []);
+
 
   const handleGetStarted = () => {
-    navigate("/signup"); // Redirect to signup page
+    navigate("/signup"); 
   };
 
   return (
     <div className="p-6 text-center bg-sky-200 min-h-screen text-pink-500 relative overflow-hidden">
-      {/* Subtle background animation */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(255,255,255,0.1)_0%,_rgba(255,255,255,0)_70%)] animate-pulse-slow"></div>
 
-      {/* Flexbox container with row layout */}
       <div className="flex items-center justify-between mt-10 relative z-10">
-        {/* Left Side - Image and Text */}
+
         <div className="flex flex-col items-start ml-20 animate-fade-in">
           <img
             src={heroImage}
             alt="MedBuddy Hero"
             className="w-full max-w-xl rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"
           />
-          {/* Funky text below the image with animation */}
+
           <p
             className="mt-6 ml-11 text-5xl font-extrabold text-shadow"
             style={{
@@ -36,12 +47,10 @@ const Home = () => {
           </p>
         </div>
 
-        {/* Right Side - Text, Cards, and Button */}
         <div className="ml-10 text-left animate-slide-in">
           <h2 className="ml-4 text-6xl font-bold text-pink-600">MedBuddy</h2>
           <p className="mt-4 ml-4 text-3xl">is here to help</p>
           <p className="mt-2 ml-4 text-3xl">Your all-in-one health platform..</p>
-          {/* Cards Section */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition">
               <h4 className="text-xl font-semibold">Personalized Medicine Reminders</h4>
@@ -60,7 +69,7 @@ const Home = () => {
               <p className="mt-2 text-gray-700">Monitor your health with easy tools.</p>
             </div>
           </div>
-          {/* Call-to-action button (centered below cards) */}
+          {!userLoggedIn && (
           <div className="mt-6 text-center">
             <button
               className="bg-yellow-400 text-white px-6 py-3 rounded-full text-lg font-semibold hover:bg-yellow-500 transition transform hover:-translate-y-1"
@@ -69,13 +78,12 @@ const Home = () => {
               Get Started
             </button>
           </div>
+        )}
         </div>
       </div>
 
-      {/* Additional Content Section */}
       <div className="mt-16 px-10 relative z-10">
 
-        {/* Testimonials Section */}
         <div className="mt-12">
           <h3 className="text-4xl font-bold text-pink-600 mb-6">What Users Say</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -94,7 +102,6 @@ const Home = () => {
   );
 };
 
-// Add CSS for animations
 const styles = `
   @keyframes fade-in {
     from { opacity: 0; }

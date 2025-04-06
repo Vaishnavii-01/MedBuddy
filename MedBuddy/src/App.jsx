@@ -3,15 +3,15 @@ import { Routes, Route } from "react-router-dom";
 import { auth } from "./firebase"; 
 import { onAuthStateChanged } from "firebase/auth";
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footer"; // Import the Footer component
+import Footer from "./components/Footer"; 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/SignUp";
 import UserProfile from "./pages/UserProfile";
-import Reminder from "./pages/Reminder"; // Import the Reminder page
-import Pharmacy from "./pages/Pharmacy"; // Import the Pharmacy page
-import Doctor from "./pages/Doctor"; // Import the Doctor page
-import Hospital from "./pages/Hospital"; // Import the Hospital page
+import Reminder from "./pages/Reminder"; 
+import Pharmacy from "./pages/Pharmacy"; 
+import Doctor from "./pages/Doctor"; 
+import Hospital from "./pages/Hospital"; 
 
 const App = () => {
   const [loggedIn, setLoggedIn] = useState(null); 
@@ -40,13 +40,13 @@ const App = () => {
             path="/profile"
             element={<UserProfile setLoggedIn={setLoggedIn} />}
           />
-          <Route path="/reminder" element={<Reminder />} /> {/* New Route */}
-          <Route path="/pharmacy" element={<Pharmacy />} /> {/* New Route */}
-          <Route path="/doctor" element={<Doctor />} /> {/* New Route */}
-          <Route path="/hospital" element={<Hospital />} /> {/* New Route */}
+          <Route path="/reminder" element={<Reminder />} /> 
+          <Route path="/pharmacy" element={<Pharmacy />} /> 
+          <Route path="/doctor" element={<Doctor />} /> 
+          <Route path="/hospital" element={<Hospital />} /> 
         </Routes>
       </div>
-      <Footer /> {/* Footer is always present at the bottom */}
+      <Footer /> 
     </div>
   );
 };
